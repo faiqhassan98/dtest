@@ -3,14 +3,30 @@ import {
   UserPerformance
 } from './types';
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api';
+function getBase(): string {
+  // 1) Explicit env override takes precedence
+  if (process.env.NEXT_PUBLIC_API_BASE) return process.env.NEXT_PUBLIC_API_BASE;
+
+  // 2) If running in the browser on Next dev (port 3000) without Nginx, talk to backend:5000
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname, port } = window.location;
+    if (port === '3000') {
+      return `${protocol}//${hostname}:5000/api`;
+    }
+    // Otherwise assume Nginx reverse proxy is available
+    return '/api';
+  }
+
+  // 3) SSR or unknown: default sensible dev fallback
+  return process.env.NODE_ENV === 'development' ? 'http://localhost:5000/api' : '/api';
+}
 
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('dtest_token') : null;
   const headers: Record<string,string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(`${BASE}${path}`, { ...opts, headers });
+  const res = await fetch(`${getBase()}${path}`, { ...opts, headers });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(body.message || res.statusText);
