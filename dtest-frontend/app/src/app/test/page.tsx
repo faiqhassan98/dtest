@@ -10,6 +10,7 @@ import {
   TestPassage,
   TestAttemptResponse,
 } from "@/lib/types";
+import { Protected } from "@/components/protected";
 
 interface Response {
   questionId: string;
@@ -121,7 +122,9 @@ function TestContent() {
 export default function TestPage() {
   return (
     <Suspense fallback={<div>Loading test page...</div>}>
-      <TestContent />
+      <Protected>
+        <TestContent />
+      </Protected>
     </Suspense>
   );
 }
